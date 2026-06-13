@@ -14,6 +14,7 @@ import type {
   Notification,
   FinanceStats,
   RecommendationResult,
+  Quote,
 } from '@/types';
 import {
   mockCouple,
@@ -27,11 +28,23 @@ import {
   mockFiles,
   mockNotifications,
   mockFinanceStats,
+  mockQuotes,
 } from '@/data/mockData';
+
+interface ConflictDetail {
+  type: 'venue' | 'vendor';
+  id: string;
+  name: string;
+  conflictWith: string;
+  conflictPlanId: string;
+}
 
 interface AppState {
   currentRole: UserRole | null;
   setCurrentRole: (role: UserRole | null) => void;
+
+  currentVendorId: string;
+  setCurrentVendorId: (id: string) => void;
 
   couple: Couple;
   updateCouplePreference: (budget: number, style: string, preferences: string[]) => void;
@@ -44,6 +57,7 @@ interface AppState {
   updatePlan: (id: string, updates: Partial<WeddingPlan>) => void;
 
   contracts: Contract[];
+  addContract: (contract: Contract) => void;
   signContract: (contractId: string, role: 'couple' | 'company') => void;
 
   tasks: Task[];
@@ -54,6 +68,7 @@ interface AppState {
 
   reviews: Review[];
   addReview: (review: Review) => void;
+  updateVendorRating: (vendorId: string, newRating: number) => void;
 
   files: FileItem[];
   addFile: (file: FileItem) => void;
@@ -66,10 +81,21 @@ interface AppState {
   recommendationResult: RecommendationResult | null;
   generateRecommendation: (budget: number, style: string, preferences: string[]) => void;
 
-  checkScheduleConflict: (vendorIds: string[], date: string) => { hasConflict: boolean; conflicts: string[] };
+  checkScheduleConflict: (
+    venueId: string,
+    vendorIds: string[],
+    date: string,
+    excludePlanId?: string
+  ) => { hasConflict: boolean; conflicts: ConflictDetail[] };
 
   selectedPlanId: string | null;
   setSelectedPlanId: (id: string | null) => void;
+
+  quotes: Quote[];
+  submitQuote: (quote: Omit<Quote, 'id' | 'status' | 'submittedAt'>) => void;
+  submitQuoteForOrder: (quoteId: string, price: number, description: string) => void;
+  acceptQuote: (quoteId: string) => void;
+  rejectQuote: (quoteId: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -77,6 +103,9 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       currentRole: null,
       setCurrentRole: (role) => set({ currentRole: role }),
+
+      currentVendorId: 'photo-001',
+      setCurrentVendorId: (id) => set({ currentVendorId: id }),
 
       couple: mockCouple,
       updateCouplePreference: (budget, style, preferences) =>
@@ -95,6 +124,7 @@ export const useAppStore = create<AppState>()(
         })),
 
       contracts: mockContracts,
+      addContract: (contract) => set((state) => ({ contracts: [...state.contracts, contract] })),
       signContract: (contractId, role) =>
         set((state) => ({
           contracts: state.contracts.map((c) =>
@@ -128,6 +158,21 @@ export const useAppStore = create<AppState>()(
 
       reviews: mockReviews,
       addReview: (review) => set((state) => ({ reviews: [review, ...state.reviews] })),
+      updateVendorRating: (vendorId, newRating) =>
+        set((state) => {
+          const vendor = state.vendors.find((v) => v.id === vendorId);
+          if (!vendor) return state;
+          const oldRating = vendor.rating;
+          const reviewCount = vendor.reviewCount;
+          const updatedRating = Math.round(((oldRating * reviewCount + newRating) / (reviewCount + 1)) * 10) / 10;
+          return {
+            vendors: state.vendors.map((v) =>
+              v.id === vendorId
+                ? { ...v, rating: updatedRating, reviewCount: reviewCount + 1 }
+                : v
+            ),
+          };
+        }),
 
       files: mockFiles,
       addFile: (file) => set((state) => ({ files: [...state.files, file] })),
@@ -202,14 +247,64 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      checkScheduleConflict: (vendorIds, date) => {
-        const { vendors } = get();
-        const conflicts: string[] = [];
+      checkScheduleConflict: (venueId, vendorIds, date, excludePlanId) => {
+        const { plans, vendors } = get();
+        const conflicts: ConflictDetail[] = [];
 
+        // 检测场地冲突 - 同一天同一场地不能有两个方案
+        const venueConflictPlan = plans.find(
+          (p) =>
+            p.venueId === venueId &&
+            p.weddingDate === date &&
+            p.id !== excludePlanId &&
+            p.status !== 'completed'
+        );
+        if (venueConflictPlan) {
+          const venue = vendors.find((v) => v.id === venueId);
+          conflicts.push({
+            type: 'venue',
+            id: venueId,
+            name: venue?.name || '场地',
+            conflictWith: venueConflictPlan.coupleName,
+            conflictPlanId: venueConflictPlan.id,
+          });
+        }
+
+        // 检测供应商冲突 - 同一天同一个供应商不能有两个方案
+        vendorIds.forEach((vendorId) => {
+          const vendorConflictPlan = plans.find(
+            (p) =>
+              p.vendors.includes(vendorId) &&
+              p.weddingDate === date &&
+              p.id !== excludePlanId &&
+              p.status !== 'completed'
+          );
+          if (vendorConflictPlan) {
+            const vendor = vendors.find((v) => v.id === vendorId);
+            conflicts.push({
+              type: 'vendor',
+              id: vendorId,
+              name: vendor?.name || '供应商',
+              conflictWith: vendorConflictPlan.coupleName,
+              conflictPlanId: vendorConflictPlan.id,
+            });
+          }
+        });
+
+        // 同时也检测供应商自身的档期
         vendorIds.forEach((id) => {
           const vendor = vendors.find((v) => v.id === id);
           if (vendor && !vendor.schedule.includes(date)) {
-            conflicts.push(vendor.name);
+            const existingConflict = conflicts.find((c) => c.id === id);
+            if (!existingConflict) {
+              conflicts.push({
+                type: 'vendor',
+                id,
+                name: vendor.name,
+                conflictWith: '供应商本身档期不可用',
+                conflictPlanId: '',
+              });
+            }
           }
         });
 
@@ -218,11 +313,72 @@ export const useAppStore = create<AppState>()(
 
       selectedPlanId: 'plan-001',
       setSelectedPlanId: (id) => set({ selectedPlanId: id }),
+
+      quotes: mockQuotes,
+      submitQuote: (quoteData) =>
+        set((state) => ({
+          quotes: [
+            ...state.quotes,
+            {
+              ...quoteData,
+              id: `quote-${Date.now()}`,
+              status: 'quoted',
+              submittedAt: new Date().toISOString().split('T')[0],
+            },
+          ],
+          notifications: [
+            {
+              id: `notif-${Date.now()}`,
+              title: '新报价提交',
+              content: `${quoteData.vendorName} 对订单「${quoteData.orderTitle}」提交了报价：¥${quoteData.price.toLocaleString()}`,
+              type: 'info',
+              targetRole: ['couple', 'company'],
+              createdAt: new Date().toLocaleString('zh-CN'),
+              read: false,
+              link: '/supplier/quotes',
+            },
+            ...state.notifications,
+          ],
+        })),
+      submitQuoteForOrder: (quoteId, price, description) =>
+        set((state) => {
+          const quote = state.quotes.find((q) => q.id === quoteId);
+          if (!quote) return state;
+          return {
+            quotes: state.quotes.map((q) =>
+              q.id === quoteId
+                ? { ...q, price, description, status: 'quoted' as const, submittedAt: new Date().toISOString().split('T')[0] }
+                : q
+            ),
+            notifications: [
+              {
+                id: `notif-${Date.now()}`,
+                title: '供应商已报价',
+                content: `${quote.vendorName} 对订单「${quote.orderTitle}」提交了报价：¥${price.toLocaleString()}`,
+                type: 'info',
+                targetRole: ['couple', 'company'],
+                createdAt: new Date().toLocaleString('zh-CN'),
+                read: false,
+                link: '/company',
+              },
+              ...state.notifications,
+            ],
+          };
+        }),
+      acceptQuote: (quoteId) =>
+        set((state) => ({
+          quotes: state.quotes.map((q) => (q.id === quoteId ? { ...q, status: 'accepted' as const } : q)),
+        })),
+      rejectQuote: (quoteId) =>
+        set((state) => ({
+          quotes: state.quotes.map((q) => (q.id === quoteId ? { ...q, status: 'rejected' as const } : q)),
+        })),
     }),
     {
       name: 'wedding-platform-storage',
       partialize: (state) => ({
         currentRole: state.currentRole,
+        currentVendorId: state.currentVendorId,
         couple: state.couple,
         plans: state.plans,
         contracts: state.contracts,
@@ -233,6 +389,7 @@ export const useAppStore = create<AppState>()(
         notifications: state.notifications,
         recommendationResult: state.recommendationResult,
         selectedPlanId: state.selectedPlanId,
+        quotes: state.quotes,
       }),
     }
   )

@@ -110,6 +110,7 @@ export interface Review {
   coupleName: string;
   vendorId: string;
   vendorName: string;
+  vendorType: VendorType;
   rating: number;
   tags: string[];
   comment: string;
@@ -168,4 +169,21 @@ export interface Notification {
   createdAt: string;
   read: boolean;
   link?: string;
+}
+
+export type QuoteStatus = 'pending' | 'quoted' | 'accepted' | 'rejected';
+
+export interface Quote {
+  id: string;
+  orderId: string;
+  orderTitle: string;
+  coupleName: string;
+  vendorId: string;
+  vendorName: string;
+  vendorType: VendorType;
+  weddingDate: string;
+  price: number;
+  description: string;
+  status: QuoteStatus;
+  submittedAt: string;
 }

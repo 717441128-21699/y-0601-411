@@ -1,37 +1,52 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Calendar,
   MapPin,
   Users,
   Camera,
   Sparkles,
-  AlertCircle,
+  AlertTriangle,
   CheckCircle,
   Lock,
   FileText,
   ChevronRight,
+  ChevronLeft,
+  Map,
+  User,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { vendorTypeLabels, vendorTypeIcons } from '@/data/mockData';
 import type { VendorType } from '@/types';
 
+interface ConflictDetail {
+  type: 'venue' | 'vendor';
+  id: string;
+  name: string;
+  conflictWith: string;
+  conflictPlanId: string;
+}
+
 export default function PlanCreatePage() {
   const navigate = useNavigate();
-  const { vendors, checkScheduleConflict, addPlan } = useAppStore();
+  const { id } = useParams<{ id: string }>();
+  const { vendors, plans, checkScheduleConflict, addPlan, addContract } = useAppStore();
   const [step, setStep] = useState(1);
 
+  const isEdit = !!id && id !== 'create';
+  const existingPlan = isEdit ? plans.find((p) => p.id === id) : null;
+
   const [formData, setFormData] = useState({
-    coupleName: '',
-    weddingDate: '2026-10-18',
-    venueId: 'venue-001',
-    guestCount: 200,
-    selectedVendors: ['photo-001', 'makeup-001', 'host-001'],
+    coupleName: existingPlan?.coupleName || '',
+    weddingDate: existingPlan?.weddingDate || '2026-10-18',
+    venueId: existingPlan?.venueId || 'venue-001',
+    guestCount: existingPlan?.guestCount || 200,
+    selectedVendors: existingPlan?.vendors || ['photo-001', 'makeup-001', 'host-001'],
   });
 
   const [conflictResult, setConflictResult] = useState<{
     hasConflict: boolean;
-    conflicts: string[];
+    conflicts: ConflictDetail[];
   } | null>(null);
 
   const [planLocked, setPlanLocked] = useState(false);
@@ -40,6 +55,7 @@ export default function PlanCreatePage() {
   const photographyVendors = vendors.filter((v) => v.type === 'photography');
   const makeupVendors = vendors.filter((v) => v.type === 'makeup');
   const hostVendors = vendors.filter((v) => v.type === 'host');
+  const flowerVendors = vendors.filter((v) => v.type === 'flower');
 
   const handleInputChange = (field: string, value: string | number | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -50,7 +66,7 @@ export default function PlanCreatePage() {
   const toggleVendor = (vendorId: string) => {
     setFormData((prev) => {
       const newVendors = prev.selectedVendors.includes(vendorId)
-        ? prev.selectedVendors.filter((id) => id !== vendorId)
+        ? prev.selectedVendors.filter((vid) => vid !== vendorId)
         : [...prev.selectedVendors, vendorId];
       return { ...prev, selectedVendors: newVendors };
     });
@@ -59,31 +75,39 @@ export default function PlanCreatePage() {
   };
 
   const handleCheckConflict = () => {
-    const allIds = [...formData.selectedVendors, formData.venueId];
-    const result = checkScheduleConflict(allIds, formData.weddingDate);
-    setConflictResult(result);
+    const result = checkScheduleConflict(
+      formData.venueId,
+      formData.selectedVendors,
+      formData.weddingDate,
+      isEdit ? id : undefined
+    );
+    setConflictResult(result as { hasConflict: boolean; conflicts: ConflictDetail[] });
     if (!result.hasConflict) {
       setPlanLocked(true);
     }
   };
 
   const handleCreatePlan = () => {
-    const totalPrice = formData.selectedVendors.reduce((sum, id) => {
-      const vendor = vendors.find((v) => v.id === id);
+    const totalVendorPrice = formData.selectedVendors.reduce((sum, vid) => {
+      const vendor = vendors.find((v) => v.id === vid);
       return sum + (vendor?.price || 0);
     }, 0);
 
     const venue = vendors.find((v) => v.id === formData.venueId);
     const vendorNames: Record<string, string> = {};
-    formData.selectedVendors.forEach((id) => {
-      const v = vendors.find((vendor) => vendor.id === id);
-      if (v) vendorNames[id] = v.name;
+    formData.selectedVendors.forEach((vid) => {
+      const v = vendors.find((vendor) => vendor.id === vid);
+      if (v) vendorNames[vid] = v.name;
     });
 
-    const newPlan = {
-      id: `plan-${Date.now()}`,
+    const planId = isEdit ? id! : `plan-${Date.now()}`;
+    const totalPrice = totalVendorPrice + 50000;
+    const coupleName = formData.coupleName || '新人方案';
+
+    const planData = {
+      id: planId,
       coupleId: 'couple-001',
-      coupleName: formData.coupleName || '新人大数据',
+      coupleName,
       companyId: 'company-001',
       companyName: '良缘婚庆策划',
       venueId: formData.venueId,
@@ -92,13 +116,71 @@ export default function PlanCreatePage() {
       vendors: formData.selectedVendors,
       vendorNames,
       status: 'pending' as const,
-      totalPrice: totalPrice + 50000,
-      createdAt: new Date().toISOString().split('T')[0],
+      totalPrice,
+      createdAt: existingPlan?.createdAt || new Date().toISOString().split('T')[0],
       guestCount: formData.guestCount,
     };
 
-    addPlan(newPlan);
-    navigate('/company');
+    if (!isEdit) {
+      addPlan(planData);
+    }
+
+    // 生成对应合同
+    const contractId = `contract-${planId}`;
+    const contractContent = `
+婚礼策划服务合同
+
+甲方（新人）：${coupleName}
+乙方（婚庆公司）：良缘婚庆策划有限公司
+
+一、服务内容
+1. 婚礼整体策划与统筹服务
+2. 场地布置与花艺设计
+3. 摄影、化妆、主持等供应商协调
+4. 婚礼当天全程执行服务
+
+二、婚礼信息
+婚礼日期：${formData.weddingDate}
+婚礼场地：${venue?.name || ''}
+预计宾客：${formData.guestCount}人
+
+三、服务费用
+总费用：人民币 ¥${totalPrice.toLocaleString()} 元整
+
+四、付款方式
+1. 定金（30%）：合同签署后3日内支付 ¥${Math.round(totalPrice * 0.3).toLocaleString()} 元
+2. 中期款（50%）：婚礼前30天支付 ¥${Math.round(totalPrice * 0.5).toLocaleString()} 元
+3. 尾款（20%）：婚礼结束后7日内支付 ¥${Math.round(totalPrice * 0.2).toLocaleString()} 元
+
+五、双方权利与义务
+（详见合同附件...）
+
+六、违约责任
+（详见合同附件...）
+
+七、其他约定
+本合同一式两份，双方各执一份，自签署之日起生效。
+    `.trim();
+
+    const newContract = {
+      id: contractId,
+      planId,
+      planName: `${coupleName} 婚礼策划服务合同`,
+      content: contractContent,
+      signedByCouple: false,
+      signedByCompany: true,
+      signedAt: null,
+      totalPrice,
+    };
+
+    // 如果合同已存在则不重复添加
+    const existingContract = plans.find((p) => p.id === planId);
+    if (!existingContract || !isEdit) {
+      addContract(newContract);
+    }
+
+    // 跳转到合同页
+    navigate(`/contract/${contractId}`);
   };
 
   const renderVendorCard = (vendor: typeof vendors[0], selected: boolean) => (
@@ -137,7 +219,17 @@ export default function PlanCreatePage() {
       {/* 步骤条 */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-serif text-2xl font-bold text-rose-gold-800">创建婚礼方案</h2>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/company')}
+              className="p-2 rounded-lg hover:bg-rose-gold-50 text-fog-400 hover:text-rose-gold-600"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <h2 className="font-serif text-2xl font-bold text-rose-gold-800">
+              {isEdit ? '编辑婚礼方案' : '创建婚礼方案'}
+            </h2>
+          </div>
           <span className="text-sm text-fog-400">第 {step} / 3 步</span>
         </div>
         <div className="flex items-center gap-2">
@@ -145,9 +237,7 @@ export default function PlanCreatePage() {
             <div key={s} className="flex-1 flex items-center gap-2">
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                  s <= step
-                    ? 'bg-rose-gold-500 text-white'
-                    : 'bg-rose-gold-100 text-rose-gold-400'
+                  s <= step ? 'bg-rose-gold-500 text-white' : 'bg-rose-gold-100 text-rose-gold-400'
                 }`}
               >
                 {s}
@@ -180,9 +270,7 @@ export default function PlanCreatePage() {
 
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-rose-gold-700 mb-2">
-                  新人姓名
-                </label>
+                <label className="block text-sm font-medium text-rose-gold-700 mb-2">新人姓名</label>
                 <input
                   type="text"
                   value={formData.coupleName}
@@ -205,8 +293,8 @@ export default function PlanCreatePage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-rose-gold-700 mb-2 flex items-center gap-2">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-rose-gold-700 mb-3 flex items-center gap-2">
                   <MapPin size={16} />
                   婚礼场地
                 </label>
@@ -215,18 +303,18 @@ export default function PlanCreatePage() {
                     <button
                       key={venue.id}
                       onClick={() => handleInputChange('venueId', venue.id)}
-                      className={`p-3 rounded-xl text-left transition-all ${
+                      className={`p-4 rounded-xl text-left transition-all ${
                         formData.venueId === venue.id
                           ? 'bg-rose-gold-500 text-white shadow-md'
                           : 'bg-rose-gold-50 text-rose-gold-700 hover:bg-rose-gold-100'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">🏨</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">🏨</span>
                         <div>
-                          <p className="text-sm font-medium">{venue.name}</p>
+                          <p className="font-medium">{venue.name}</p>
                           <p className={`text-xs ${formData.venueId === venue.id ? 'text-rose-gold-100' : 'text-fog-400'}`}>
-                            ¥{venue.price}/桌
+                            ¥{venue.price}/桌 · {venue.tags[0]}
                           </p>
                         </div>
                       </div>
@@ -246,7 +334,7 @@ export default function PlanCreatePage() {
                   onChange={(e) => handleInputChange('guestCount', Number(e.target.value))}
                   className="w-full px-4 py-3 rounded-xl border border-rose-gold-200 focus:border-rose-gold-500 focus:ring-2 focus:ring-rose-gold-100 outline-none transition-all"
                 />
-                <p className="text-xs text-fog-400 mt-1">预计 20 桌，每桌 10 人</p>
+                <p className="text-xs text-fog-400 mt-1">约 {Math.ceil(formData.guestCount / 10)} 桌</p>
               </div>
             </div>
           </div>
@@ -260,7 +348,6 @@ export default function PlanCreatePage() {
               选配供应商
             </h3>
 
-            {/* 摄影 */}
             <div>
               <h4 className="text-sm font-medium text-rose-gold-700 mb-3 flex items-center gap-2">
                 <Camera size={16} className="text-rose-gold-500" />
@@ -273,11 +360,8 @@ export default function PlanCreatePage() {
               </div>
             </div>
 
-            {/* 化妆 */}
             <div>
-              <h4 className="text-sm font-medium text-rose-gold-700 mb-3">
-                💄 化妆造型
-              </h4>
+              <h4 className="text-sm font-medium text-rose-gold-700 mb-3">💄 化妆造型</h4>
               <div className="grid grid-cols-2 gap-3">
                 {makeupVendors.map((v) =>
                   renderVendorCard(v, formData.selectedVendors.includes(v.id))
@@ -285,13 +369,19 @@ export default function PlanCreatePage() {
               </div>
             </div>
 
-            {/* 主持 */}
             <div>
-              <h4 className="text-sm font-medium text-rose-gold-700 mb-3">
-                🎤 司仪主持
-              </h4>
+              <h4 className="text-sm font-medium text-rose-gold-700 mb-3">🎤 司仪主持</h4>
               <div className="grid grid-cols-2 gap-3">
                 {hostVendors.map((v) =>
+                  renderVendorCard(v, formData.selectedVendors.includes(v.id))
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-rose-gold-700 mb-3">💐 花艺布置</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {flowerVendors.map((v) =>
                   renderVendorCard(v, formData.selectedVendors.includes(v.id))
                 )}
               </div>
@@ -309,17 +399,19 @@ export default function PlanCreatePage() {
         {step === 3 && (
           <div className="p-8 space-y-6">
             <h3 className="font-serif text-xl font-bold text-rose-gold-800 flex items-center gap-2">
-              <AlertCircle size={20} className="text-rose-gold-500" />
+              <AlertTriangle size={20} className="text-rose-gold-500" />
               档期冲突检测
             </h3>
 
             {!conflictResult && (
               <div className="text-center py-10">
                 <div className="w-20 h-20 bg-rose-gold-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <AlertCircle size={40} className="text-rose-gold-400" />
+                  <AlertTriangle size={40} className="text-rose-gold-400" />
                 </div>
                 <p className="text-rose-gold-700 mb-2">点击下方按钮检测档期冲突</p>
-                <p className="text-sm text-fog-400">系统将检测场地和所有供应商在 {formData.weddingDate} 的档期情况</p>
+                <p className="text-sm text-fog-400">
+                  系统将检测场地和所有供应商在 <span className="font-medium text-rose-gold-600">{formData.weddingDate}</span> 的档期情况
+                </p>
                 <button
                   onClick={handleCheckConflict}
                   className="mt-6 px-8 py-3 bg-rose-gold-500 text-white rounded-xl font-medium hover:bg-rose-gold-600 transition-colors shadow-md"
@@ -329,42 +421,76 @@ export default function PlanCreatePage() {
               </div>
             )}
 
-            {conflictResult && (
-              <div
-                className={`p-6 rounded-xl ${
-                  conflictResult.hasConflict
-                    ? 'bg-red-50 border border-red-100'
-                    : 'bg-emerald-50 border border-emerald-100'
-                }`}
-              >
+            {conflictResult && conflictResult.hasConflict && (
+              <div className="bg-red-50 border border-red-100 rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  {conflictResult.hasConflict ? (
-                    <>
-                      <AlertCircle size={24} className="text-red-500" />
-                      <h4 className="font-medium text-red-700">检测到档期冲突</h4>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle size={24} className="text-emerald-500" />
-                      <h4 className="font-medium text-emerald-700">所有档期可用</h4>
-                    </>
-                  )}
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <AlertTriangle size={22} className="text-red-500" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-red-700">检测到 {conflictResult.conflicts.length} 个档期冲突</h4>
+                    <p className="text-sm text-red-500">请调整日期或更换供应商后再检测</p>
+                  </div>
                 </div>
 
-                {conflictResult.hasConflict ? (
-                  <ul className="space-y-2">
-                    {conflictResult.conflicts.map((name, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm text-red-600">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                        {name} - {formData.weddingDate} 档期不可用
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-emerald-600">
-                    场地和所有供应商在 {formData.weddingDate} 均有空档，可以安排！
-                  </p>
-                )}
+                <div className="space-y-3">
+                  {conflictResult.conflicts.map((conflict, i) => (
+                    <div
+                      key={i}
+                      className="bg-white rounded-lg p-4 border border-red-100 flex items-start gap-4"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
+                        {conflict.type === 'venue' ? <Map size={18} className="text-red-500" /> : <User size={18} className="text-red-500" />}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2 py-0.5 bg-red-100 text-red-600 rounded">
+                            {conflict.type === 'venue' ? '场地冲突' : '供应商冲突'}
+                          </span>
+                          <span className="font-medium text-red-700">{conflict.name}</span>
+                        </div>
+                        <p className="text-sm text-red-500 mt-1">
+                          与 <span className="font-medium">{conflict.conflictWith}</span> 的订单档期冲突
+                          {conflict.conflictPlanId && `（订单号：${conflict.conflictPlanId}）`}
+                        </p>
+                        <p className="text-xs text-fog-400 mt-2">
+                          💡 建议：更换日期或换用其他{conflict.type === 'venue' ? '场地' : '供应商'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={() => setStep(1)}
+                    className="flex-1 py-2.5 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 transition-colors"
+                  >
+                    返回修改日期
+                  </button>
+                  <button
+                    onClick={() => setStep(2)}
+                    className="flex-1 py-2.5 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 transition-colors"
+                  >
+                    更换供应商
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {conflictResult && !conflictResult.hasConflict && (
+              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                    <CheckCircle size={22} className="text-emerald-500" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-emerald-700">所有档期可用 ✓</h4>
+                    <p className="text-sm text-emerald-500">
+                      场地和所有供应商在 {formData.weddingDate} 均有空档
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -375,8 +501,7 @@ export default function PlanCreatePage() {
                   <h4 className="font-medium text-emerald-700">档期已锁定</h4>
                 </div>
                 <p className="text-sm text-emerald-600">
-                  系统已为您锁定 {formData.weddingDate} 的所有档期，有效期至 2026-06-20，
-                  请尽快签署合同确认订单。
+                  系统已为您临时锁定 {formData.weddingDate} 的所有档期，请尽快生成合同并签署确认。
                 </p>
               </div>
             )}
@@ -405,12 +530,12 @@ export default function PlanCreatePage() {
                     <span className="text-rose-gold-700">{formData.selectedVendors.length} 位</span>
                   </div>
                   <div className="flex justify-between col-span-2 pt-2 border-t border-rose-gold-100">
-                    <span className="text-rose-gold-700 font-medium">方案总价（含策划费）</span>
+                    <span className="text-rose-gold-700 font-medium">方案总价（含策划费5万）</span>
                     <span className="text-rose-gold-600 font-bold text-lg">
                       ¥
                       {(
-                        formData.selectedVendors.reduce((sum, id) => {
-                          const v = vendors.find((vendor) => vendor.id === id);
+                        formData.selectedVendors.reduce((sum, vid) => {
+                          const v = vendors.find((vendor) => vendor.id === vid);
                           return sum + (v?.price || 0);
                         }, 0) + 50000
                       ).toLocaleString()}
@@ -426,9 +551,10 @@ export default function PlanCreatePage() {
         <div className="px-8 py-5 border-t border-rose-gold-100 flex justify-between">
           <button
             onClick={() => (step > 1 ? setStep(step - 1) : navigate('/company'))}
-            className="px-6 py-3 rounded-xl text-rose-gold-600 hover:bg-rose-gold-50 transition-colors"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl text-rose-gold-600 hover:bg-rose-gold-50 transition-colors"
           >
-            {step > 1 ? '上一步' : '取消'}
+            <ChevronLeft size={18} />
+            {step > 1 ? '上一步' : '返回'}
           </button>
 
           {step < 3 ? (

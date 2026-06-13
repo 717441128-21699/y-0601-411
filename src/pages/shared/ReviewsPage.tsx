@@ -1,12 +1,19 @@
 import { useState } from 'react';
-import { Star, TrendingUp, MessageSquare, ThumbsUp, Award, ChevronDown } from 'lucide-react';
+import { Star, TrendingUp, MessageSquare, ThumbsUp, Award, X, Send } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { vendorTypeLabels } from '@/data/mockData';
+import type { Review, VendorType } from '@/types';
 
 export default function ReviewsPage() {
-  const { reviews, vendors, currentRole } = useAppStore();
+  const { reviews, vendors, currentRole, addReview, couple, updateVendorRating } = useAppStore();
   const [activeTab, setActiveTab] = useState<'ranking' | 'myReviews'>('ranking');
   const [selectedType, setSelectedType] = useState<string>('all');
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedVendorId, setSelectedVendorId] = useState('');
+  const [rating, setRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const vendorTypeOptions = [
     { key: 'all', label: '全部' },
@@ -16,6 +23,10 @@ export default function ReviewsPage() {
     { key: 'venue', label: '场地' },
     { key: 'flower', label: '花艺布置' },
   ];
+
+  const availableVendors = vendors.filter(
+    (v) => selectedType === 'all' || v.type === selectedType
+  );
 
   const vendorRankings = vendors
     .filter((v) => selectedType === 'all' || v.type === selectedType)
@@ -36,7 +47,57 @@ export default function ReviewsPage() {
     '妆容精致',
     '气场强大',
     '环境优美',
+    '耐心细致',
+    '值得推荐',
   ];
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const handleSubmitReview = () => {
+    if (!selectedVendorId) {
+      alert('请选择要评价的供应商');
+      return;
+    }
+    if (rating === 0) {
+      alert('请选择评分星级');
+      return;
+    }
+    if (!reviewText.trim()) {
+      alert('请填写评价内容');
+      return;
+    }
+
+    const vendor = vendors.find((v) => v.id === selectedVendorId);
+    if (!vendor) return;
+
+    const newReview: Review = {
+      id: `review-${Date.now()}`,
+      coupleId: couple.id,
+      coupleName: couple.name + ' & ' + couple.partnerName,
+      vendorId: selectedVendorId,
+      vendorName: vendor.name,
+      vendorType: vendor.type as VendorType,
+      rating,
+      tags: selectedTags,
+      comment: reviewText,
+      createdAt: new Date().toLocaleDateString('zh-CN'),
+    };
+
+    addReview(newReview);
+    updateVendorRating(selectedVendorId, rating);
+
+    // 重置表单
+    setShowReviewModal(false);
+    setSelectedVendorId('');
+    setRating(5);
+    setReviewText('');
+    setSelectedTags([]);
+    setActiveTab('myReviews');
+  };
 
   return (
     <div className="animate-fade-in-up">
@@ -47,7 +108,10 @@ export default function ReviewsPage() {
         </div>
 
         {currentRole === 'couple' && (
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-burgundy-500 text-white rounded-xl font-medium hover:bg-burgundy-600 transition-colors">
+          <button
+            onClick={() => setShowReviewModal(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-burgundy-500 text-white rounded-xl font-medium hover:bg-burgundy-600 transition-colors shadow-md"
+          >
             <MessageSquare size={18} />
             发表评价
           </button>
@@ -75,6 +139,7 @@ export default function ReviewsPage() {
           }`}
         >
           💬 最新评价
+          <span className="ml-2 text-xs opacity-70">({reviews.length})</span>
         </button>
       </div>
 
@@ -85,7 +150,7 @@ export default function ReviewsPage() {
             {/* 类型筛选 */}
             <div className="p-5 border-b border-rose-gold-100 flex items-center gap-3">
               <span className="text-sm text-fog-500">分类：</span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {vendorTypeOptions.map((opt) => (
                   <button
                     key={opt.key}
@@ -107,7 +172,9 @@ export default function ReviewsPage() {
                 <div
                   key={vendor.id}
                   className={`flex items-center gap-4 p-4 rounded-xl transition-all hover:shadow-soft ${
-                    vendor.rank <= 3 ? 'bg-gradient-to-r from-rose-gold-50 to-transparent' : 'bg-ivory-50'
+                    vendor.rank <= 3
+                      ? 'bg-gradient-to-r from-rose-gold-50 to-transparent'
+                      : 'bg-ivory-50'
                   }`}
                 >
                   {/* 排名 */}
@@ -146,13 +213,15 @@ export default function ReviewsPage() {
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium text-rose-gold-800">{vendor.name}</h4>
                       <span className="text-xs px-2 py-0.5 bg-rose-gold-100 text-rose-gold-600 rounded">
-                        {vendorTypeLabels[vendor.type]}
+                        {vendorTypeLabels[vendor.type as VendorType]}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 mt-1">
                       <div className="flex items-center gap-1">
                         <Star size={14} className="text-yellow-400 fill-yellow-400" />
-                        <span className="text-sm font-bold text-rose-gold-700">{vendor.rating}</span>
+                        <span className="text-sm font-bold text-rose-gold-700">
+                          {vendor.rating.toFixed(1)}
+                        </span>
                       </div>
                       <span className="text-xs text-fog-400">{vendor.reviewCount} 条评价</span>
                     </div>
@@ -206,11 +275,17 @@ export default function ReviewsPage() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-fog-500">总评价数</span>
-                  <span className="font-bold text-rose-gold-700">2,856</span>
+                  <span className="font-bold text-rose-gold-700">{reviews.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-fog-500">平均评分</span>
-                  <span className="font-bold text-rose-gold-700">4.8</span>
+                  <span className="font-bold text-rose-gold-700">
+                    {vendors.length > 0
+                      ? (
+                          vendors.reduce((sum, v) => sum + v.rating, 0) / vendors.length
+                        ).toFixed(1)
+                      : '0'}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-fog-500">好评率</span>
@@ -237,16 +312,24 @@ export default function ReviewsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-rose-gold-800">{review.coupleName}</span>
+                        <span className="font-medium text-rose-gold-800">
+                          {review.coupleName}
+                        </span>
                         <span className="text-xs text-fog-400">评价了</span>
-                        <span className="text-sm font-medium text-rose-gold-600">{review.vendorName}</span>
+                        <span className="text-sm font-medium text-rose-gold-600">
+                          {review.vendorName}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1 mt-1">
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
                             size={14}
-                            className={i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-fog-200'}
+                            className={
+                              i < review.rating
+                                ? 'text-yellow-400 fill-yellow-400'
+                                : 'text-fog-200'
+                            }
                           />
                         ))}
                         <span className="text-xs text-fog-400 ml-2">{review.createdAt}</span>
@@ -271,6 +354,155 @@ export default function ReviewsPage() {
               </div>
             </div>
           ))}
+
+          {reviews.length === 0 && (
+            <div className="text-center py-20">
+              <div className="text-6xl mb-4">💬</div>
+              <h3 className="text-xl font-medium text-rose-gold-700 mb-2">暂无评价</h3>
+              <p className="text-fog-400">还没有用户发表评价</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 发表评价弹窗 */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-lg mx-4 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-rose-gold-100 sticky top-0 bg-white">
+              <h3 className="font-serif text-lg font-bold text-rose-gold-800">发表评价</h3>
+              <button
+                onClick={() => setShowReviewModal(false)}
+                className="p-1 rounded-lg hover:bg-rose-gold-50 text-fog-400 hover:text-rose-gold-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* 选择供应商 */}
+              <div>
+                <label className="block text-sm font-medium text-rose-gold-700 mb-2">
+                  选择供应商 <span className="text-red-400">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                  {vendors.map((vendor) => (
+                    <button
+                      key={vendor.id}
+                      onClick={() => setSelectedVendorId(vendor.id)}
+                      className={`p-3 rounded-lg text-left text-sm transition-all ${
+                        selectedVendorId === vendor.id
+                          ? 'bg-rose-gold-500 text-white shadow-md'
+                          : 'bg-rose-gold-50 text-rose-gold-700 hover:bg-rose-gold-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">
+                          {vendor.type === 'photography' && '📷'}
+                          {vendor.type === 'makeup' && '💄'}
+                          {vendor.type === 'host' && '🎤'}
+                          {vendor.type === 'venue' && '🏨'}
+                          {vendor.type === 'flower' && '💐'}
+                        </span>
+                        <span className="font-medium truncate">{vendor.name}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 评分 */}
+              <div>
+                <label className="block text-sm font-medium text-rose-gold-700 mb-2">
+                  服务评分 <span className="text-red-400">*</span>
+                </label>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setRating(star)}
+                      className="p-1 transition-transform hover:scale-110"
+                    >
+                      <Star
+                        size={28}
+                        className={
+                          star <= (hoverRating || rating)
+                            ? 'text-yellow-400 fill-yellow-400'
+                            : 'text-fog-200'
+                        }
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-3 text-sm text-fog-400">
+                    {rating === 1 && '很差'}
+                    {rating === 2 && '一般'}
+                    {rating === 3 && '还行'}
+                    {rating === 4 && '满意'}
+                    {rating === 5 && '非常满意'}
+                  </span>
+                </div>
+              </div>
+
+              {/* 标签选择 */}
+              <div>
+                <label className="block text-sm font-medium text-rose-gold-700 mb-2">
+                  选择标签（可多选）
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {allTags.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={`px-3 py-1.5 rounded-full text-xs transition-all ${
+                        selectedTags.includes(tag)
+                          ? 'bg-rose-gold-500 text-white'
+                          : 'bg-rose-gold-50 text-rose-gold-600 hover:bg-rose-gold-100'
+                      }`}
+                    >
+                      {selectedTags.includes(tag) && '✓ '}
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 评价内容 */}
+              <div>
+                <label className="block text-sm font-medium text-rose-gold-700 mb-2">
+                  评价内容 <span className="text-red-400">*</span>
+                </label>
+                <textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  placeholder="分享您的服务体验，帮助其他新人做出更好的选择..."
+                  rows={4}
+                  maxLength={500}
+                  className="w-full px-4 py-3 rounded-xl border border-rose-gold-200 focus:border-rose-gold-500 focus:ring-2 focus:ring-rose-gold-100 outline-none transition-all resize-none text-sm"
+                />
+                <p className="text-xs text-fog-400 mt-1 text-right">
+                  {reviewText.length}/500
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 p-6 border-t border-rose-gold-100 sticky bottom-0 bg-white">
+              <button
+                onClick={() => setShowReviewModal(false)}
+                className="flex-1 py-3 rounded-xl border border-rose-gold-200 text-rose-gold-600 font-medium hover:bg-rose-gold-50 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSubmitReview}
+                className="flex-1 py-3 rounded-xl bg-burgundy-500 text-white font-medium hover:bg-burgundy-600 transition-colors flex items-center justify-center gap-2"
+              >
+                <Send size={16} />
+                提交评价
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

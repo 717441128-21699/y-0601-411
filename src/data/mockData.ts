@@ -11,6 +11,7 @@ import type {
   Notification,
   FinanceStats,
   VendorType,
+  Quote,
 } from '@/types';
 
 export const mockCouple: Couple = {
@@ -372,6 +373,7 @@ export const mockReviews: Review[] = [
     coupleName: '李女士 & 王先生',
     vendorId: 'photo-001',
     vendorName: '时光映画摄影工作室',
+    vendorType: 'photography',
     rating: 5,
     tags: ['技术专业', '沟通顺畅', '出片率高'],
     comment: '摄影团队非常专业，抓拍了很多感人的瞬间，照片超出预期！',
@@ -383,6 +385,7 @@ export const mockReviews: Review[] = [
     coupleName: '张小姐 & 刘先生',
     vendorId: 'makeup-001',
     vendorName: '美妆造型师-娜娜',
+    vendorType: 'makeup',
     rating: 5,
     tags: ['妆容精致', '服务贴心', '全天跟妆'],
     comment: '娜娜老师的技术太棒了，妆容清透自然，全天补妆也很及时，强烈推荐！',
@@ -394,6 +397,7 @@ export const mockReviews: Review[] = [
     coupleName: '陈先生 & 赵女士',
     vendorId: 'host-001',
     vendorName: '金牌司仪-陈老师',
+    vendorType: 'host',
     rating: 5,
     tags: ['气场强大', '互动性强', '节奏把控好'],
     comment: '陈老师主持经验丰富，现场氛围调动得特别好，长辈们都很满意。',
@@ -405,6 +409,7 @@ export const mockReviews: Review[] = [
     coupleName: '孙女士 & 周先生',
     vendorId: 'venue-001',
     vendorName: '海景花园酒店',
+    vendorType: 'venue',
     rating: 4,
     tags: ['环境优美', '服务周到', '菜品可口'],
     comment: '海景仪式超浪漫，宴会厅布置也很精致，就是上菜速度可以再快一点。',
@@ -539,6 +544,51 @@ export const mockFinanceStats: FinanceStats = {
     { id: 'flower-001', name: '花语集花艺', type: 'flower', orderCount: 22, revenue: 193600, rating: 4.9 },
   ],
 };
+
+export const mockQuotes: Quote[] = [
+  {
+    id: 'quote-001',
+    orderId: 'order-001',
+    orderTitle: '林小雨 & 张明远 婚礼摄影',
+    coupleName: '林小雨 & 张明远',
+    vendorId: 'photo-001',
+    vendorName: '时光映画摄影工作室',
+    vendorType: 'photography',
+    weddingDate: '2026-10-18',
+    price: 12800,
+    description: '双机位全天跟拍，精修100张，底片全送',
+    status: 'accepted',
+    submittedAt: '2026-06-03',
+  },
+  {
+    id: 'quote-002',
+    orderId: 'order-002',
+    orderTitle: '王女士 & 李先生 婚礼摄影',
+    coupleName: '王女士 & 李先生',
+    vendorId: 'photo-001',
+    vendorName: '时光映画摄影工作室',
+    vendorType: 'photography',
+    weddingDate: '2026-11-05',
+    price: 18800,
+    description: '三机位电影级拍摄，48小时出预告片',
+    status: 'quoted',
+    submittedAt: '2026-06-08',
+  },
+  {
+    id: 'quote-003',
+    orderId: 'order-003',
+    orderTitle: '陈小姐 & 刘先生 婚礼摄影',
+    coupleName: '陈小姐 & 刘先生',
+    vendorId: 'photo-001',
+    vendorName: '时光映画摄影工作室',
+    vendorType: 'photography',
+    weddingDate: '2026-12-12',
+    price: 9800,
+    description: '',
+    status: 'pending',
+    submittedAt: '',
+  },
+];
 
 export const weddingStyles = [
   { id: 'romantic', name: '浪漫唯美', icon: '🌹', description: '粉色系、花艺、蜡烛、柔焦' },

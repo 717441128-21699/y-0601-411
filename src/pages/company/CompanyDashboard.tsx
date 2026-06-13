@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { FileText, Calendar, Users, DollarSign, Plus, ChevronRight, Clock } from 'lucide-react';
+import { FileText, Calendar, Users, DollarSign, Plus, ChevronRight, Clock, FileSignature, Eye } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 export default function CompanyDashboard() {
   const navigate = useNavigate();
-  const { plans, tasks, notifications } = useAppStore();
+  const { plans, tasks, notifications, contracts } = useAppStore();
 
   const activePlans = plans.filter((p) => p.status !== 'completed');
   const completedPlans = plans.filter((p) => p.status === 'completed');
@@ -72,43 +72,73 @@ export default function CompanyDashboard() {
             </button>
           </div>
           <div className="space-y-3">
-            {plans.map((plan) => (
-              <div
-                key={plan.id}
-                className="flex items-center gap-4 p-4 rounded-xl bg-ivory-50 hover:bg-rose-gold-50 transition-colors cursor-pointer"
-                onClick={() => navigate(`/company/plan/${plan.id}`)}
-              >
-                <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center shadow-soft">
-                  <span className="text-2xl">💒</span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-rose-gold-800">{plan.coupleName}</p>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full ${
-                        plan.status === 'confirmed'
-                          ? 'bg-emerald-100 text-emerald-600'
-                          : plan.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-600'
-                          : 'bg-fog-100 text-fog-500'
-                      }`}
-                    >
-                      {plan.status === 'confirmed'
-                        ? '已确认'
-                        : plan.status === 'pending'
-                        ? '待确认'
-                        : '草稿'}
-                    </span>
+            {plans.map((plan) => {
+              const hasContract = contracts.some((c) => c.planId === plan.id);
+              const contract = contracts.find((c) => c.planId === plan.id);
+              return (
+                <div
+                  key={plan.id}
+                  className="p-4 rounded-xl bg-ivory-50 hover:bg-rose-gold-50 transition-colors"
+                >
+                  <div
+                    className="flex items-center gap-4 cursor-pointer"
+                    onClick={() => navigate(`/company/plan/${plan.id}`)}
+                  >
+                    <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center shadow-soft">
+                      <span className="text-2xl">💒</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-rose-gold-800">{plan.coupleName}</p>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full ${
+                            plan.status === 'confirmed'
+                              ? 'bg-emerald-100 text-emerald-600'
+                              : plan.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-600'
+                              : 'bg-fog-100 text-fog-500'
+                          }`}
+                        >
+                          {plan.status === 'confirmed'
+                            ? '已确认'
+                            : plan.status === 'pending'
+                            ? '待确认'
+                            : '草稿'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-sm text-fog-400">
+                        <span>📅 {plan.weddingDate}</span>
+                        <span>📍 {plan.venueName}</span>
+                        <span>💰 ¥{plan.totalPrice.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={20} className="text-fog-300" />
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-sm text-fog-400">
-                    <span>📅 {plan.weddingDate}</span>
-                    <span>📍 {plan.venueName}</span>
-                    <span>💰 ¥{plan.totalPrice.toLocaleString()}</span>
-                  </div>
+                  {hasContract && contract && (
+                    <div className="mt-3 pt-3 border-t border-rose-gold-100 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileSignature size={14} className="text-rose-gold-500" />
+                        <span className="text-xs text-fog-500">
+                          {contract.signedByCouple && contract.signedByCompany
+                            ? '合同已签署'
+                            : '合同待签署'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/contract/${contract.id}`);
+                        }}
+                        className="flex items-center gap-1 text-xs text-rose-gold-600 hover:text-rose-gold-700 font-medium"
+                      >
+                        <Eye size={14} />
+                        查看合同
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <ChevronRight size={20} className="text-fog-300" />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
