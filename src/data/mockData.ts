@@ -1,0 +1,581 @@
+import type {
+  Couple,
+  WeddingCompany,
+  Vendor,
+  WeddingPlan,
+  Contract,
+  Task,
+  Payment,
+  Review,
+  FileItem,
+  Notification,
+  FinanceStats,
+  VendorType,
+} from '@/types';
+
+export const mockCouple: Couple = {
+  id: 'couple-001',
+  name: '林小雨',
+  partnerName: '张明远',
+  avatar: '👰',
+  budget: 150000,
+  style: 'romantic',
+  preferences: ['户外', '海边', '简约', '鲜花'],
+  weddingDate: '2026-10-18',
+};
+
+export const mockCompanies: WeddingCompany[] = [
+  {
+    id: 'company-001',
+    name: '良缘婚庆策划',
+    logo: '💒',
+    rating: 4.9,
+    caseCount: 328,
+    priceRange: [80000, 200000],
+    description: '专注高端婚礼策划10年，以精致细节和浪漫氛围著称',
+    tags: ['高端定制', '户外婚礼', '一站式服务'],
+  },
+  {
+    id: 'company-002',
+    name: '花嫁物语',
+    logo: '🌸',
+    rating: 4.8,
+    caseCount: 256,
+    priceRange: [60000, 150000],
+    description: '日系清新风格，擅长森系与花园主题婚礼',
+    tags: ['森系', '小清新', '性价比高'],
+  },
+  {
+    id: 'company-003',
+    name: '盛典婚礼定制',
+    logo: '👑',
+    rating: 4.7,
+    caseCount: 189,
+    priceRange: [100000, 300000],
+    description: '奢华婚礼定制专家，星级酒店战略合作',
+    tags: ['奢华', '酒店婚礼', '明星同款'],
+  },
+];
+
+export const mockVendors: Vendor[] = [
+  {
+    id: 'photo-001',
+    name: '时光映画摄影工作室',
+    type: 'photography',
+    avatar: '📷',
+    rating: 4.9,
+    reviewCount: 456,
+    price: 12800,
+    schedule: ['2026-09-15', '2026-09-20', '2026-10-05', '2026-10-18', '2026-10-25'],
+    description: '电影级婚礼跟拍，擅长捕捉真情实感的瞬间',
+    tags: ['电影感', '双机位', '精修100张'],
+  },
+  {
+    id: 'photo-002',
+    name: '鹿光摄影',
+    type: 'photography',
+    avatar: '📸',
+    rating: 4.8,
+    reviewCount: 312,
+    price: 9800,
+    schedule: ['2026-09-10', '2026-09-25', '2026-10-02', '2026-10-15', '2026-10-28'],
+    description: '自然纪实风格，记录最真实的幸福时刻',
+    tags: ['纪实风', '三机位', '底片全送'],
+  },
+  {
+    id: 'makeup-001',
+    name: '美妆造型师-娜娜',
+    type: 'makeup',
+    avatar: '💄',
+    rating: 4.9,
+    reviewCount: 289,
+    price: 5800,
+    schedule: ['2026-09-12', '2026-09-28', '2026-10-08', '2026-10-18', '2026-11-01'],
+    description: '资深化妆师，擅长清透自然新娘妆',
+    tags: ['清透妆', '妈妈妆', '免费试妆'],
+  },
+  {
+    id: 'makeup-002',
+    name: 'YUKI新娘造型',
+    type: 'makeup',
+    avatar: '💋',
+    rating: 4.7,
+    reviewCount: 198,
+    price: 4200,
+    schedule: ['2026-09-08', '2026-09-30', '2026-10-10', '2026-10-20', '2026-10-30'],
+    description: '韩式精致妆容，打造完美新娘',
+    tags: ['韩式妆', '全天跟妆', '送妈妈妆'],
+  },
+  {
+    id: 'host-001',
+    name: '金牌司仪-陈老师',
+    type: 'host',
+    avatar: '🎤',
+    rating: 4.9,
+    reviewCount: 523,
+    price: 8800,
+    schedule: ['2026-09-06', '2026-09-19', '2026-10-04', '2026-10-18', '2026-10-22'],
+    description: '15年主持经验，大气稳重又不失幽默',
+    tags: ['大气稳重', '互动强', '金牌司仪'],
+  },
+  {
+    id: 'host-002',
+    name: '婚礼主持人-小雨',
+    type: 'host',
+    avatar: '🎙️',
+    rating: 4.8,
+    reviewCount: 345,
+    price: 6000,
+    schedule: ['2026-09-11', '2026-09-22', '2026-10-07', '2026-10-15', '2026-10-29'],
+    description: '温馨浪漫风格，擅长营造感动氛围',
+    tags: ['温馨浪漫', '声音好听', '性价比高'],
+  },
+  {
+    id: 'venue-001',
+    name: '海景花园酒店',
+    type: 'venue',
+    avatar: '🏨',
+    rating: 4.8,
+    reviewCount: 678,
+    price: 3999,
+    schedule: ['2026-09-20', '2026-10-05', '2026-10-18', '2026-11-02'],
+    description: '五星级海景酒店，可容纳30桌，户外草坪仪式',
+    tags: ['海景', '户外草坪', '五星级'],
+  },
+  {
+    id: 'venue-002',
+    name: '云端艺术中心',
+    type: 'venue',
+    avatar: '🏛️',
+    rating: 4.9,
+    reviewCount: 432,
+    price: 5888,
+    schedule: ['2026-09-15', '2026-10-10', '2026-10-25', '2026-11-08'],
+    description: '工业风艺术空间，层高8米，可定制化布置',
+    tags: ['工业风', '艺术空间', '层高8米'],
+  },
+  {
+    id: 'flower-001',
+    name: '花语集花艺',
+    type: 'flower',
+    avatar: '💐',
+    rating: 4.9,
+    reviewCount: 234,
+    price: 8800,
+    schedule: ['2026-09-18', '2026-10-12', '2026-10-18', '2026-10-26'],
+    description: '进口鲜花，专业婚礼花艺设计',
+    tags: ['进口花材', '定制设计', '手捧花'],
+  },
+  {
+    id: 'catering-001',
+    name: '臻味宴会定制',
+    type: 'catering',
+    avatar: '🍽️',
+    rating: 4.7,
+    reviewCount: 156,
+    price: 1280,
+    schedule: ['2026-09-10', '2026-10-08', '2026-10-18', '2026-11-05'],
+    description: '中西式融合宴会菜品，星级主厨',
+    tags: ['中西融合', '星级主厨', '套餐可选'],
+  },
+];
+
+export const mockPlans: WeddingPlan[] = [
+  {
+    id: 'plan-001',
+    coupleId: 'couple-001',
+    coupleName: '林小雨 & 张明远',
+    companyId: 'company-001',
+    companyName: '良缘婚庆策划',
+    venueId: 'venue-001',
+    venueName: '海景花园酒店',
+    weddingDate: '2026-10-18',
+    vendors: ['photo-001', 'makeup-001', 'host-001', 'flower-001', 'catering-001'],
+    vendorNames: {
+      'photo-001': '时光映画摄影工作室',
+      'makeup-001': '美妆造型师-娜娜',
+      'host-001': '金牌司仪-陈老师',
+      'flower-001': '花语集花艺',
+      'catering-001': '臻味宴会定制',
+    },
+    status: 'confirmed',
+    totalPrice: 168000,
+    createdAt: '2026-06-01',
+    guestCount: 200,
+  },
+];
+
+export const mockContracts: Contract[] = [
+  {
+    id: 'contract-001',
+    planId: 'plan-001',
+    planName: '林小雨 & 张明远 婚礼策划服务合同',
+    content: `
+婚礼策划服务合同
+
+甲方（新人）：林小雨 & 张明远
+乙方（婚庆公司）：良缘婚庆策划
+
+一、服务内容
+1. 婚礼整体策划与统筹服务
+2. 场地布置与花艺设计
+3. 摄影、化妆、主持等供应商协调
+4. 婚礼当天全程执行服务
+
+二、服务费用
+总费用：人民币 168,000 元整
+
+三、付款方式
+1. 定金：合同签署后3日内支付30%，即50,400元
+2. 中期款：婚礼前30天支付50%，即84,000元
+3. 尾款：婚礼结束后7日内支付20%，即33,600元
+
+四、双方权责
+（详情见合同附件...）
+
+五、违约责任
+（详情见合同附件...）
+
+六、其他约定
+本合同一式两份，双方各执一份，自签署之日起生效。
+    `.trim(),
+    signedByCouple: true,
+    signedByCompany: true,
+    signedAt: '2026-06-05',
+    totalPrice: 168000,
+  },
+];
+
+export const mockTasks: Task[] = [
+  {
+    id: 'task-001',
+    planId: 'plan-001',
+    title: '初次沟通会',
+    description: '与新人确认婚礼风格、色系、预算等基础需求',
+    date: '2026-07-01',
+    time: '14:00',
+    location: '良缘婚庆策划工作室',
+    type: 'meeting',
+    status: 'completed',
+    assignee: '策划师-王老师',
+    assigneeRole: 'company',
+    remindDays: 7,
+  },
+  {
+    id: 'task-002',
+    planId: 'plan-001',
+    title: '试妆',
+    description: '新娘试妆，确定婚礼当天造型',
+    date: '2026-09-20',
+    time: '10:00',
+    location: '娜娜美妆工作室',
+    type: 'makeup_test',
+    status: 'pending',
+    assignee: '美妆造型师-娜娜',
+    assigneeRole: 'supplier',
+    remindDays: 7,
+  },
+  {
+    id: 'task-003',
+    planId: 'plan-001',
+    title: '场地勘察',
+    description: '婚庆团队前往场地测量尺寸，确认布置方案',
+    date: '2026-10-01',
+    time: '09:00',
+    location: '海景花园酒店',
+    type: 'meeting',
+    status: 'pending',
+    assignee: '策划师-王老师',
+    assigneeRole: 'company',
+    remindDays: 7,
+  },
+  {
+    id: 'task-004',
+    planId: 'plan-001',
+    title: '婚礼彩排',
+    description: '新人与司仪、摄影团队彩排流程',
+    date: '2026-10-17',
+    time: '15:00',
+    location: '海景花园酒店 宴会厅',
+    type: 'rehearsal',
+    status: 'pending',
+    assignee: '金牌司仪-陈老师',
+    assigneeRole: 'supplier',
+    remindDays: 7,
+  },
+  {
+    id: 'task-005',
+    planId: 'plan-001',
+    title: '婚礼当天',
+    description: '正式婚礼，全程跟拍跟妆',
+    date: '2026-10-18',
+    time: '06:00',
+    location: '海景花园酒店',
+    type: 'wedding',
+    status: 'pending',
+    assignee: '全体团队',
+    assigneeRole: 'company',
+    remindDays: 7,
+  },
+  {
+    id: 'task-006',
+    planId: 'plan-001',
+    title: '交付精修照片',
+    description: '摄影团队交付精修照片和视频',
+    date: '2026-11-18',
+    type: 'delivery',
+    status: 'pending',
+    assignee: '时光映画摄影工作室',
+    assigneeRole: 'supplier',
+    remindDays: 7,
+  },
+];
+
+export const mockPayments: Payment[] = [
+  {
+    id: 'pay-001',
+    planId: 'plan-001',
+    stage: 'deposit',
+    stageName: '定金',
+    amount: 50400,
+    status: 'paid',
+    dueDate: '2026-06-08',
+    milestone: '合同签署',
+    paidAt: '2026-06-06',
+  },
+  {
+    id: 'pay-002',
+    planId: 'plan-001',
+    stage: 'middle',
+    stageName: '中期款',
+    amount: 84000,
+    status: 'pending',
+    dueDate: '2026-09-18',
+    milestone: '婚礼前30天',
+  },
+  {
+    id: 'pay-003',
+    planId: 'plan-001',
+    stage: 'final',
+    stageName: '尾款',
+    amount: 33600,
+    status: 'pending',
+    dueDate: '2026-10-25',
+    milestone: '婚礼结束后7天内',
+  },
+];
+
+export const mockReviews: Review[] = [
+  {
+    id: 'review-001',
+    coupleId: 'couple-002',
+    coupleName: '李女士 & 王先生',
+    vendorId: 'photo-001',
+    vendorName: '时光映画摄影工作室',
+    rating: 5,
+    tags: ['技术专业', '沟通顺畅', '出片率高'],
+    comment: '摄影团队非常专业，抓拍了很多感人的瞬间，照片超出预期！',
+    createdAt: '2026-05-20',
+  },
+  {
+    id: 'review-002',
+    coupleId: 'couple-003',
+    coupleName: '张小姐 & 刘先生',
+    vendorId: 'makeup-001',
+    vendorName: '美妆造型师-娜娜',
+    rating: 5,
+    tags: ['妆容精致', '服务贴心', '全天跟妆'],
+    comment: '娜娜老师的技术太棒了，妆容清透自然，全天补妆也很及时，强烈推荐！',
+    createdAt: '2026-05-15',
+  },
+  {
+    id: 'review-003',
+    coupleId: 'couple-004',
+    coupleName: '陈先生 & 赵女士',
+    vendorId: 'host-001',
+    vendorName: '金牌司仪-陈老师',
+    rating: 5,
+    tags: ['气场强大', '互动性强', '节奏把控好'],
+    comment: '陈老师主持经验丰富，现场氛围调动得特别好，长辈们都很满意。',
+    createdAt: '2026-05-10',
+  },
+  {
+    id: 'review-004',
+    coupleId: 'couple-005',
+    coupleName: '孙女士 & 周先生',
+    vendorId: 'venue-001',
+    vendorName: '海景花园酒店',
+    rating: 4,
+    tags: ['环境优美', '服务周到', '菜品可口'],
+    comment: '海景仪式超浪漫，宴会厅布置也很精致，就是上菜速度可以再快一点。',
+    createdAt: '2026-05-08',
+  },
+];
+
+export const mockFiles: FileItem[] = [
+  {
+    id: 'file-001',
+    planId: 'plan-001',
+    name: '婚礼需求清单.docx',
+    type: 'requirement',
+    url: '#',
+    uploadedBy: '林小雨',
+    uploadedByRole: 'couple',
+    uploadedAt: '2026-06-02',
+    size: '1.2MB',
+    category: '需求文档',
+  },
+  {
+    id: 'file-002',
+    planId: 'plan-001',
+    name: '喜欢的婚礼风格参考图.zip',
+    type: 'requirement',
+    url: '#',
+    uploadedBy: '林小雨',
+    uploadedByRole: 'couple',
+    uploadedAt: '2026-06-03',
+    size: '15.6MB',
+    category: '参考图片',
+  },
+  {
+    id: 'file-003',
+    planId: 'plan-001',
+    name: '婚礼策划方案.pdf',
+    type: 'delivery',
+    url: '#',
+    uploadedBy: '良缘婚庆策划',
+    uploadedByRole: 'company',
+    uploadedAt: '2026-06-10',
+    size: '8.5MB',
+    category: '策划方案',
+  },
+  {
+    id: 'file-004',
+    planId: 'plan-001',
+    name: '花艺设计效果图.png',
+    type: 'delivery',
+    url: '#',
+    uploadedBy: '花语集花艺',
+    uploadedByRole: 'supplier',
+    uploadedAt: '2026-06-15',
+    size: '3.2MB',
+    category: '设计稿',
+  },
+  {
+    id: 'file-005',
+    planId: 'plan-001',
+    name: '婚礼服务合同.pdf',
+    type: 'contract',
+    url: '#',
+    uploadedBy: '系统',
+    uploadedByRole: 'company',
+    uploadedAt: '2026-06-05',
+    size: '456KB',
+    category: '合同文件',
+  },
+];
+
+export const mockNotifications: Notification[] = [
+  {
+    id: 'notif-001',
+    title: '合同已生成',
+    content: '您的婚礼服务合同已生成，请及时查看并签署。',
+    type: 'info',
+    targetRole: ['couple', 'company'],
+    createdAt: '2026-06-05 10:30',
+    read: false,
+    link: '/contract/contract-001',
+  },
+  {
+    id: 'notif-002',
+    title: '待付款提醒',
+    content: '中期款 84,000 元将于 2026-09-18 到期，请及时支付。',
+    type: 'warning',
+    targetRole: ['couple'],
+    createdAt: '2026-09-11 09:00',
+    read: false,
+    link: '/couple/payment',
+  },
+  {
+    id: 'notif-003',
+    title: '试妆提醒',
+    content: '您的试妆预约在 7 天后（09-20 10:00），请准时参加。',
+    type: 'info',
+    targetRole: ['couple'],
+    createdAt: '2026-09-13 08:00',
+    read: true,
+    link: '/tasks',
+  },
+  {
+    id: 'notif-004',
+    title: '新订单推荐',
+    content: '系统为您推荐了1个新订单，请到报价管理查看。',
+    type: 'success',
+    targetRole: ['supplier'],
+    createdAt: '2026-06-03 14:00',
+    read: false,
+    link: '/supplier/quotes',
+  },
+];
+
+export const mockFinanceStats: FinanceStats = {
+  totalRevenue: 2580000,
+  totalOrders: 32,
+  completionRate: 96.8,
+  disputeRate: 1.2,
+  monthlyRevenue: [
+    { month: '1月', revenue: 320000 },
+    { month: '2月', revenue: 280000 },
+    { month: '3月', revenue: 350000 },
+    { month: '4月', revenue: 420000 },
+    { month: '5月', revenue: 480000 },
+    { month: '6月', revenue: 510000 },
+  ],
+  topVendors: [
+    { id: 'photo-001', name: '时光映画摄影工作室', type: 'photography', orderCount: 28, revenue: 358400, rating: 4.9 },
+    { id: 'makeup-001', name: '美妆造型师-娜娜', type: 'makeup', orderCount: 25, revenue: 145000, rating: 4.9 },
+    { id: 'host-001', name: '金牌司仪-陈老师', type: 'host', orderCount: 32, revenue: 281600, rating: 4.9 },
+    { id: 'venue-001', name: '海景花园酒店', type: 'venue', orderCount: 18, revenue: 719820, rating: 4.8 },
+    { id: 'flower-001', name: '花语集花艺', type: 'flower', orderCount: 22, revenue: 193600, rating: 4.9 },
+  ],
+};
+
+export const weddingStyles = [
+  { id: 'romantic', name: '浪漫唯美', icon: '🌹', description: '粉色系、花艺、蜡烛、柔焦' },
+  { id: 'minimalist', name: '简约高级', icon: '✨', description: '黑白金、线条、极简装置' },
+  { id: 'chinese', name: '中式传统', icon: '🏮', description: '红色、龙凤、秀禾服' },
+  { id: 'forest', name: '森系自然', icon: '🌿', description: '绿植、木艺、户外、清新' },
+  { id: 'luxury', name: '奢华宫廷', icon: '👑', description: '金色、水晶、欧式、大气' },
+  { id: 'vintage', name: '复古怀旧', icon: '📻', description: '暖色调、旧物件、胶片感' },
+];
+
+export const preferenceOptions = [
+  { id: 'outdoor', name: '户外婚礼', icon: '🌳' },
+  { id: 'indoor', name: '室内宴会厅', icon: '🏛️' },
+  { id: 'beach', name: '海边婚礼', icon: '🌊' },
+  { id: 'church', name: '教堂婚礼', icon: '⛪' },
+  { id: 'lawn', name: '草坪婚礼', icon: '🌱' },
+  { id: 'garden', name: '花园婚礼', icon: '🌸' },
+  { id: 'small', name: '小型婚礼', icon: '💝' },
+  { id: 'big', name: '大型婚宴', icon: '🎉' },
+  { id: 'chinese', name: '中式元素', icon: '🏮' },
+  { id: 'western', name: '西式仪式', icon: '💒' },
+];
+
+export const vendorTypeLabels: Record<VendorType, string> = {
+  photography: '摄影摄像',
+  makeup: '化妆造型',
+  host: '司仪主持',
+  venue: '场地',
+  flower: '花艺布置',
+  catering: '婚宴餐饮',
+};
+
+export const vendorTypeIcons: Record<VendorType, string> = {
+  photography: '📷',
+  makeup: '💄',
+  host: '🎤',
+  venue: '🏨',
+  flower: '💐',
+  catering: '🍽️',
+};
